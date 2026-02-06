@@ -35,6 +35,15 @@ checkpoint_set() {
     touch "${CHECKPOINT_DIR}/$1"
 }
 
+# Determine the repo directory — it may have already been renamed
+if [ -d "${WORK_DIR}/omcachy" ]; then
+    REPO_DIR="${WORK_DIR}/omcachy"
+elif [ -d "${WORK_DIR}/omarchy" ]; then
+    REPO_DIR="${WORK_DIR}/omarchy"
+else
+    REPO_DIR="${WORK_DIR}/omarchy"
+fi
+
 # ─── 1. Check if git is installed ────────────────────────────────────────────
 if ! command -v git &> /dev/null; then
     echo "Error: git is not installed. Please install git before running this script."
@@ -51,7 +60,7 @@ echo "[✓] paru is installed."
 
 # ─── 3. Clone Omarchy repo ───────────────────────────────────────────────────
 if ! checkpoint_done "clone"; then
-    if [ -d "${WORK_DIR}/omarchy" ]; then
+    if [ -d "${REPO_DIR}" ]; then
         echo "Omarchy directory already exists, skipping clone."
     else
         echo "Cloning Omarchy from repo..."
@@ -59,6 +68,7 @@ if ! checkpoint_done "clone"; then
             echo "Error: Failed to clone Omarchy repo."
             exit 1
         fi
+        REPO_DIR="${WORK_DIR}/omarchy"
     fi
     checkpoint_set "clone"
 else
@@ -68,7 +78,7 @@ fi
 # ─── 4. Rename omarchy → omcachy across the repo ─────────────────────────────
 if ! checkpoint_done "rename"; then
     echo "Renaming omarchy → omcachy across the repo (preserving URLs and pacman source lines)..."
-    cd "${WORK_DIR}/omarchy"
+    cd "${REPO_DIR}"
 
     # Step 1: Rename file contents (preserving URLs, Server lines, and [omarchy] section)
     find . -not -path './.git/*' -type f -exec sed -i \
@@ -83,7 +93,7 @@ if ! checkpoint_done "rename"; then
       -e '}' \
     {} +
 
-    # Step 2: Rename files containing "omarchy" in their name (deepest first)
+    # Step 2: Rename files/directories containing "omarchy" (deepest first)
     find . -not -path './.git/*' -depth -name '*omarchy*' | while IFS= read -r path; do
         dir="$(dirname "$path")"
         old_name="$(basename "$path")"
@@ -94,7 +104,7 @@ if ! checkpoint_done "rename"; then
         fi
     done
 
-    # Step 3: Rename files containing "OMARCHY" in their name (deepest first)
+    # Step 3: Rename files/directories containing "OMARCHY" (deepest first)
     find . -not -path './.git/*' -depth -name '*OMARCHY*' | while IFS= read -r path; do
         dir="$(dirname "$path")"
         old_name="$(basename "$path")"
@@ -105,6 +115,15 @@ if ! checkpoint_done "rename"; then
         fi
     done
 
+    cd "${WORK_DIR}"
+
+    # Step 4: Rename the repo directory itself
+    if [ -d "${WORK_DIR}/omarchy" ]; then
+        mv "${WORK_DIR}/omarchy" "${WORK_DIR}/omcachy"
+        echo "  - Renamed repo directory: omarchy → omcachy"
+    fi
+    REPO_DIR="${WORK_DIR}/omcachy"
+
     checkpoint_set "rename"
 else
     echo "[✓] Rename already completed, skipping."
@@ -113,7 +132,7 @@ fi
 # ─── 5. Replace branding assets ──────────────────────────────────────────────
 if ! checkpoint_done "branding"; then
     echo "Replacing branding assets with custom versions from ${ASSETS_DIR}..."
-    cd "${WORK_DIR}/omarchy"
+    cd "${REPO_DIR}"
 
     if [ ! -d "$ASSETS_DIR" ]; then
         echo "  ⚠ Assets directory not found (${ASSETS_DIR}), skipping branding."
@@ -209,7 +228,7 @@ export OMCACHY_USER_EMAIL
 if ! checkpoint_done "patch_scripts"; then
     echo ""
     echo "Making adjustments to Omcachy install scripts to support CachyOS..."
-    cd "${WORK_DIR}/omarchy"
+    cd "${REPO_DIR}"
 
     # Remove tldr to prevent conflict with tealdeer
     if grep -q 'tldr' install/omcachy-base.packages 2>/dev/null; then
@@ -264,7 +283,7 @@ fi
 if ! checkpoint_done "copy_local"; then
     echo "Copying Omcachy to ~/.local/share/omcachy..."
     mkdir -p ~/.local/share/omcachy
-    cp -r "${WORK_DIR}/omarchy/." ~/.local/share/omcachy
+    cp -r "${REPO_DIR}/." ~/.local/share/omcachy
     checkpoint_set "copy_local"
 else
     echo "[✓] Copy to ~/.local/share/omcachy already completed, skipping."
