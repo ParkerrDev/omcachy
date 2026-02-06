@@ -97,20 +97,6 @@ if ! checkpoint_done "rename"; then
     echo "  (Preserving upstream package names, commands, paths, URLs, themes, and pacman config)"
     cd "$REPO_DIR"
 
-    # Only rename lines that are pure display/branding text.
-    # Skip any line that contains:
-    #   - URLs (https://...omarchy)
-    #   - Pacman server lines (Server = ...)
-    #   - Pacman repo section ([omarchy])
-    #   - Upstream command/package names (omarchy- prefix)
-    #   - Upstream file references (omarchy.something)
-    #   - Upstream install paths (~/.local/share/omarchy)
-    #   - OMARCHY_ variables
-    #   - run_logged lines (upstream script paths)
-    #   - pacman commands referencing omarchy
-    #   - cp/mkdir commands referencing omarchy
-    #   - Plymouth theme paths (/usr/share/plymouth, .plymouth)
-    #   - Themes directory references (themes/omarchy)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
@@ -182,7 +168,7 @@ else
     echo "[✓] Branding assets already replaced, skipping."
 fi
 
-# ─── 6. Import Omarchy signing key ───────────────────────────────────────────
+# ─── 6. Import Omarchy signing key ────────────────────────────────��──────────
 if ! checkpoint_done "signing_key"; then
     if pacman-key --list-keys F0134EE680CAC571 &> /dev/null; then
         echo "Omarchy signing key already imported."
@@ -292,6 +278,12 @@ if ! checkpoint_done "patch_scripts"; then
         echo "  - Patched mise activation for bash/fish."
     fi
 
+    # Patch tte logo animation to not halt install on failure
+    # This is a known upstream issue — tte can fail in certain terminal environments
+    find . -not -path './.git/*' -type f -name '*.sh' -exec \
+        sed -i 's/\(tte.*logo\.txt\)/\1 || true/' {} +
+    echo "  - Patched tte logo animation to not halt on failure."
+
     checkpoint_set "patch_scripts"
 else
     echo "[✓] Script patching already completed, skipping."
@@ -311,7 +303,6 @@ if ! checkpoint_done "copy_local"; then
     rsync -a --exclude='.git' "${REPO_DIR}/" "$INSTALL_DIR/"
 
     # Create compatibility symlink: ~/.local/share/omarchy → ~/.local/share/omcachy
-    # Upstream scripts/packages hardcode ~/.local/share/omarchy as their install path
     if [ -L "$COMPAT_LINK" ]; then
         rm "$COMPAT_LINK"
     elif [ -d "$COMPAT_LINK" ]; then
@@ -341,6 +332,7 @@ echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
 echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
 echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
 echo "10. Created symlink ~/.local/share/omarchy → ~/.local/share/omcachy."
+echo "11. Patched tte logo animation to not halt install on failure."
 echo ""
 echo "Press Enter to begin the installation of Omcachy..."
 read -r
@@ -348,7 +340,7 @@ read -r
 chmod +x install.sh
 ./install.sh
 
-# ─── Done — clean up checkpoints ─────────────────────────────────────────────
+# ─── Done — clean up checkpoints ─────────────────────────���───────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
 rm -rf "$CHECKPOINT_DIR"
