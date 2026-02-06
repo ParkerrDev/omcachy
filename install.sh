@@ -19,6 +19,10 @@ echo "$WORK_DIR" > "${CHECKPOINT_DIR}/work_dir"
 
 echo "Using temporary working directory: ${WORK_DIR}"
 
+# The repo directory name changes after the rename step
+REPO_DIR="${WORK_DIR}/omcachy"
+REPO_DIR_PRERENAMED="${WORK_DIR}/omarchy"
+
 # Clean up temp directory on exit (success or failure)
 cleanup() {
     echo ""
@@ -34,15 +38,6 @@ checkpoint_done() {
 checkpoint_set() {
     touch "${CHECKPOINT_DIR}/$1"
 }
-
-# Determine the repo directory — it may have already been renamed
-if [ -d "${WORK_DIR}/omcachy" ]; then
-    REPO_DIR="${WORK_DIR}/omcachy"
-elif [ -d "${WORK_DIR}/omarchy" ]; then
-    REPO_DIR="${WORK_DIR}/omarchy"
-else
-    REPO_DIR="${WORK_DIR}/omarchy"
-fi
 
 # ─── 1. Check if git is installed ────────────────────────────────────────────
 if ! command -v git &> /dev/null; then
@@ -60,15 +55,14 @@ echo "[✓] paru is installed."
 
 # ─── 3. Clone Omarchy repo ───────────────────────────────────────────────────
 if ! checkpoint_done "clone"; then
-    if [ -d "${REPO_DIR}" ]; then
+    if [ -d "$REPO_DIR_PRERENAMED" ] || [ -d "$REPO_DIR" ]; then
         echo "Omarchy directory already exists, skipping clone."
     else
         echo "Cloning Omarchy from repo..."
-        if ! git clone https://www.github.com/basecamp/omarchy "${WORK_DIR}/omarchy"; then
+        if ! git clone https://www.github.com/basecamp/omarchy "$REPO_DIR_PRERENAMED"; then
             echo "Error: Failed to clone Omarchy repo."
             exit 1
         fi
-        REPO_DIR="${WORK_DIR}/omarchy"
     fi
     checkpoint_set "clone"
 else
@@ -77,8 +71,18 @@ fi
 
 # ─── 4. Rename omarchy → omcachy across the repo ─────────────────────────────
 if ! checkpoint_done "rename"; then
+    # Determine which directory name currently exists
+    if [ -d "$REPO_DIR" ]; then
+        RENAME_TARGET="$REPO_DIR"
+    elif [ -d "$REPO_DIR_PRERENAMED" ]; then
+        RENAME_TARGET="$REPO_DIR_PRERENAMED"
+    else
+        echo "Error: Neither ${REPO_DIR} nor ${REPO_DIR_PRERENAMED} exists."
+        exit 1
+    fi
+
     echo "Renaming omarchy → omcachy across the repo (preserving URLs and pacman source lines)..."
-    cd "${REPO_DIR}"
+    cd "$RENAME_TARGET"
 
     # Step 1: Rename file contents (preserving URLs, Server lines, and [omarchy] section)
     find . -not -path './.git/*' -type f -exec sed -i \
@@ -115,14 +119,13 @@ if ! checkpoint_done "rename"; then
         fi
     done
 
-    cd "${WORK_DIR}"
+    cd "$WORK_DIR"
 
-    # Step 4: Rename the repo directory itself
-    if [ -d "${WORK_DIR}/omarchy" ]; then
-        mv "${WORK_DIR}/omarchy" "${WORK_DIR}/omcachy"
-        echo "  - Renamed repo directory: omarchy → omcachy"
+    # Step 4: Rename the top-level repo directory itself
+    if [ -d "$REPO_DIR_PRERENAMED" ]; then
+        mv "$REPO_DIR_PRERENAMED" "$REPO_DIR"
+        echo "  - Renamed: ${REPO_DIR_PRERENAMED} → ${REPO_DIR}"
     fi
-    REPO_DIR="${WORK_DIR}/omcachy"
 
     checkpoint_set "rename"
 else
@@ -132,7 +135,7 @@ fi
 # ─── 5. Replace branding assets ──────────────────────────────────────────────
 if ! checkpoint_done "branding"; then
     echo "Replacing branding assets with custom versions from ${ASSETS_DIR}..."
-    cd "${REPO_DIR}"
+    cd "$REPO_DIR"
 
     if [ ! -d "$ASSETS_DIR" ]; then
         echo "  ⚠ Assets directory not found (${ASSETS_DIR}), skipping branding."
@@ -224,11 +227,11 @@ fi
 export OMCACHY_USER_NAME
 export OMCACHY_USER_EMAIL
 
-# ─── 10. Patch Omarchy install scripts for CachyOS ───────────────────────────
+# ─── 10. Patch Omcachy install scripts for CachyOS ───────────────────────────
 if ! checkpoint_done "patch_scripts"; then
     echo ""
     echo "Making adjustments to Omcachy install scripts to support CachyOS..."
-    cd "${REPO_DIR}"
+    cd "$REPO_DIR"
 
     # Remove tldr to prevent conflict with tealdeer
     if grep -q 'tldr' install/omcachy-base.packages 2>/dev/null; then
@@ -313,6 +316,4 @@ chmod +x install.sh
 # ─── Done — clean up checkpoints ─────────────────────────────────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
-rm -rf "$CHECKPOINT_DIR"
-# Temp directory is cleaned up automatically by the EXIT trap
-echo "Done."
+rm -rf "$CHECKPOINT_DIR
