@@ -1,0 +1,1 @@
+sudo sed -i '1s|#!/usr/sbin/python|#!/usr/bin/python|' $(which tte)
