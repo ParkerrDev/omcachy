@@ -41,7 +41,15 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
-# ─── 2. Clone Omarchy repo ───────────────────────────────────────────────────
+# ─── 2. Check if paru is installed ───────────────────────────────────────────
+if ! command -v paru &> /dev/null; then
+    echo "Error: paru is not installed. It should be pre-installed on CachyOS."
+    echo "Install it with: sudo pacman -S paru"
+    exit 1
+fi
+echo "[✓] paru is installed."
+
+# ─── 3. Clone Omarchy repo ───────────────────────────────────────────────────
 if ! checkpoint_done "clone"; then
     if [ -d "${WORK_DIR}/omarchy" ]; then
         echo "Omarchy directory already exists, skipping clone."
@@ -57,7 +65,7 @@ else
     echo "[✓] Clone already completed, skipping."
 fi
 
-# ─── 3. Rename omarchy → omcachy across the repo ─────────────────────────────
+# ─── 4. Rename omarchy → omcachy across the repo ─────────────────────────────
 if ! checkpoint_done "rename"; then
     echo "Renaming omarchy → omcachy across the repo (preserving URLs and pacman source lines)..."
     cd "${WORK_DIR}/omarchy"
@@ -77,7 +85,7 @@ else
     echo "[✓] Rename already completed, skipping."
 fi
 
-# ─── 4. Replace branding assets ──────────────────────────────────────────────
+# ─── 5. Replace branding assets ──────────────────────────────────────────────
 if ! checkpoint_done "branding"; then
     echo "Replacing branding assets with custom versions from ${ASSETS_DIR}..."
     cd "${WORK_DIR}/omarchy"
@@ -110,30 +118,6 @@ if ! checkpoint_done "branding"; then
     checkpoint_set "branding"
 else
     echo "[✓] Branding assets already replaced, skipping."
-fi
-
-# ─── 5. Install paru ─────────────────────────────────────────────────────────
-if ! checkpoint_done "paru"; then
-    if command -v paru &> /dev/null; then
-        echo "paru is already installed."
-    else
-        echo "paru is not installed. Installing paru..."
-        sudo pacman -S --needed --noconfirm git base-devel
-
-        git clone https://aur.archlinux.org/paru.git "${WORK_DIR}/paru"
-        cd "${WORK_DIR}/paru"
-        makepkg -si --noconfirm
-        cd -
-
-        if ! command -v paru &> /dev/null; then
-            echo "Error: Failed to install paru."
-            exit 1
-        fi
-        echo "paru has been successfully installed."
-    fi
-    checkpoint_set "paru"
-else
-    echo "[✓] paru step already completed, skipping."
 fi
 
 # ─── 6. Import Omarchy signing key ───────────────────────────────────────────
