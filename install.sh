@@ -168,7 +168,7 @@ else
     echo "[✓] Branding assets already replaced, skipping."
 fi
 
-# ─── 6. Import Omarchy signing key ────────────────────────────────��──────────
+# ─── 6. Import Omarchy signing key ───────────────────────────────────────────
 if ! checkpoint_done "signing_key"; then
     if pacman-key --list-keys F0134EE680CAC571 &> /dev/null; then
         echo "Omarchy signing key already imported."
@@ -278,11 +278,11 @@ if ! checkpoint_done "patch_scripts"; then
         echo "  - Patched mise activation for bash/fish."
     fi
 
-    # Patch tte logo animation to not halt install on failure
-    # This is a known upstream issue — tte can fail in certain terminal environments
+    # Remove tte logo animation entirely — it halts the install in non-standard terminals
+    # even with exit code 0, due to omarchy's ERR trap catching signals from tte's rendering
     find . -not -path './.git/*' -type f -name '*.sh' -exec \
-        sed -i 's/\(tte.*logo\.txt\)/\1 || true/' {} +
-    echo "  - Patched tte logo animation to not halt on failure."
+        sed -i '/tte.*logo\.txt/d' {} +
+    echo "  - Removed tte logo animation (causes install halt)."
 
     checkpoint_set "patch_scripts"
 else
@@ -332,7 +332,7 @@ echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
 echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
 echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
 echo "10. Created symlink ~/.local/share/omarchy → ~/.local/share/omcachy."
-echo "11. Patched tte logo animation to not halt install on failure."
+echo "11. Removed tte logo animation (causes install halt)."
 echo ""
 echo "Press Enter to begin the installation of Omcachy..."
 read -r
@@ -340,7 +340,7 @@ read -r
 chmod +x install.sh
 ./install.sh
 
-# ─── Done — clean up checkpoints ─────────────────────────���───────────────────
+# ─── Done — clean up checkpoints ─────────────────────────────────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
 rm -rf "$CHECKPOINT_DIR"
