@@ -42,6 +42,8 @@ else
 fi
 
 REPO_DIR="${WORK_DIR}/omarchy"
+INSTALL_DIR="${HOME}/.local/share/omcachy"
+COMPAT_LINK="${HOME}/.local/share/omarchy"
 
 # Clean up temp directory on exit (success or failure)
 cleanup() {
@@ -162,7 +164,7 @@ else
     echo "[✓] Branding assets already replaced, skipping."
 fi
 
-# ─── 6. Import Omarchy signing key ────────────────────────���──────────────────
+# ─── 6. Import Omarchy signing key ───────────────────────────────────────────
 if ! checkpoint_done "signing_key"; then
     if pacman-key --list-keys F0134EE680CAC571 &> /dev/null; then
         echo "Omarchy signing key already imported."
@@ -277,27 +279,36 @@ else
     echo "[✓] Script patching already completed, skipping."
 fi
 
-# ─── 11. Copy to ~/.local/share/omcachy ──────────────────────────────────────
+# ─── 11. Copy to ~/.local/share/omcachy and symlink ──────────────────────────
 if ! checkpoint_done "copy_local"; then
-    echo "Copying Omcachy to ~/.local/share/omcachy..."
+    echo "Copying Omcachy to ${INSTALL_DIR}..."
 
-    # Remove any stale previous copy (may have root-owned .git files from a failed run)
-    if [ -d ~/.local/share/omcachy ]; then
+    # Remove any stale previous copy
+    if [ -d "$INSTALL_DIR" ]; then
         echo "  Removing previous partial copy..."
-        sudo rm -rf ~/.local/share/omcachy
+        sudo rm -rf "$INSTALL_DIR"
     fi
 
-    mkdir -p ~/.local/share/omcachy
+    mkdir -p "$INSTALL_DIR"
+    rsync -a --exclude='.git' "${REPO_DIR}/" "$INSTALL_DIR/"
 
-    # Copy everything except .git — it's not needed for installation
-    rsync -a --exclude='.git' "${REPO_DIR}/" ~/.local/share/omcachy/
+    # Create compatibility symlink: ~/.local/share/omarchy → ~/.local/share/omcachy
+    # Upstream scripts/packages hardcode ~/.local/share/omarchy as their install path
+    if [ -L "$COMPAT_LINK" ]; then
+        rm "$COMPAT_LINK"
+    elif [ -d "$COMPAT_LINK" ]; then
+        echo "  Removing existing ~/.local/share/omarchy directory..."
+        sudo rm -rf "$COMPAT_LINK"
+    fi
+    ln -s "$INSTALL_DIR" "$COMPAT_LINK"
+    echo "  Created symlink: ${COMPAT_LINK} → ${INSTALL_DIR}"
 
     checkpoint_set "copy_local"
 else
-    echo "[✓] Copy to ~/.local/share/omcachy already completed, skipping."
+    echo "[✓] Copy to ${INSTALL_DIR} already completed, skipping."
 fi
 
-cd ~/.local/share/omcachy
+cd "$INSTALL_DIR"
 
 # ─── 12. Run Omcachy installer ───────────────────────────────────────────────
 echo ""
@@ -311,6 +322,7 @@ echo " 6. Disabled further Omarchy changes to pacman.conf, preserving CachyOS se
 echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
 echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
 echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
+echo "10. Created symlink ~/.local/share/omarchy → ~/.local/share/omcachy."
 echo ""
 echo "Press Enter to begin the installation of Omcachy..."
 read -r
