@@ -41,9 +41,8 @@ else
     echo "Using temporary working directory: ${WORK_DIR}"
 fi
 
-# The repo directory name changes after the rename step
-REPO_DIR="${WORK_DIR}/omcachy"
-REPO_DIR_PRERENAMED="${WORK_DIR}/omarchy"
+# The repo directory name stays as "omarchy" — we only rename display text inside files
+REPO_DIR="${WORK_DIR}/omarchy"
 
 # Clean up temp directory on exit (success or failure)
 cleanup() {
@@ -77,11 +76,11 @@ echo "[✓] paru is installed."
 
 # ─── 3. Clone Omarchy repo ───────────────────────────────────────────────────
 if ! checkpoint_done "clone"; then
-    if [ -d "$REPO_DIR_PRERENAMED" ] || [ -d "$REPO_DIR" ]; then
+    if [ -d "$REPO_DIR" ]; then
         echo "Omarchy directory already exists, skipping clone."
     else
         echo "Cloning Omarchy from repo..."
-        if ! git clone https://www.github.com/basecamp/omarchy "$REPO_DIR_PRERENAMED"; then
+        if ! git clone https://www.github.com/basecamp/omarchy "$REPO_DIR"; then
             echo "Error: Failed to clone Omarchy repo."
             exit 1
         fi
@@ -91,43 +90,35 @@ else
     echo "[✓] Clone already completed, skipping."
 fi
 
-# ─── 4. Rename omarchy → omcachy across the repo ─────────────────────────────
+# ─── 4. Rename display text omarchy → omcachy inside files ───────────────────
 if ! checkpoint_done "rename"; then
-    # Determine which directory name currently exists
-    if [ -d "$REPO_DIR" ]; then
-        RENAME_TARGET="$REPO_DIR"
-    elif [ -d "$REPO_DIR_PRERENAMED" ]; then
-        RENAME_TARGET="$REPO_DIR_PRERENAMED"
-    else
-        echo "Error: Neither ${REPO_DIR} nor ${REPO_DIR_PRERENAMED} exists."
-        exit 1
-    fi
+    echo "Renaming display text omarchy → omcachy inside files..."
+    echo "  (Preserving upstream package names, commands, paths, URLs, and pacman config)"
+    cd "$REPO_DIR"
 
-    echo "Renaming omarchy → omcachy across the repo (preserving URLs, pacman, packages, and commands)..."
-    cd "$RENAME_TARGET"
-
-    # Step 1: Rename file contents
-    # Preserves:
-    #   - URLs containing omarchy (https://...)
-    #   - Pacman Server lines (Server = ...)
+    # Only rename lines that are pure display/branding text.
+    # Skip any line that contains:
+    #   - URLs (https://...omarchy)
+    #   - Pacman server lines (Server = ...omarchy)
     #   - Pacman repo section ([omarchy])
-    #   - Upstream package/command names (omarchy-xxx as a command or package name)
-    #   - Upstream paths (~/.local/share/omarchy/)
+    #   - Upstream command/package names (omarchy- prefix)
+    #   - Upstream install paths (~/.local/share/omarchy)
     #   - Upstream font file (omarchy.ttf)
+    #   - Pacman commands referencing omarchy
+    #   - OMARCHY_INSTALL variable (used to reference install paths)
+    #   - run_logged lines (reference upstream script paths)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
       -e '/\[omarchy\]/!{' \
-      -e '/omarchy-pkg-/!{' \
-      -e '/omarchy-hw-/!{' \
-      -e '/omarchy-cmd-/!{' \
-      -e '/omarchy-nvim/!{' \
-      -e '/omarchy-tui-/!{' \
-      -e '/omarchy-webapp-/!{' \
-      -e '/omarchy-update/!{' \
-      -e '/omarchy\.ttf/!{' \
+      -e '/omarchy-/!{' \
+      -e '/omarchy\./!{' \
       -e '/\.local\/share\/omarchy/!{' \
+      -e '/OMARCHY_/!{' \
+      -e '/run_logged.*omarchy/!{' \
       -e '/pacman.*omarchy/!{' \
+      -e '/cp.*omarchy/!{' \
+      -e '/mkdir.*omarchy/!{' \
       -e 's/OMARCHY/OMCACHY/g' \
       -e 's/Omarchy/Omcachy/g' \
       -e 's/omarchy/omcachy/g' \
@@ -142,44 +133,7 @@ if ! checkpoint_done "rename"; then
       -e '}' \
       -e '}' \
       -e '}' \
-      -e '}' \
-      -e '}' \
     {} +
-
-    # Step 2: Rename files/directories containing "omarchy" (deepest first)
-    # Only rename directory structure, NOT files that are actual upstream package scripts
-    find . -not -path './.git/*' -depth -name '*omarchy*' | while IFS= read -r path; do
-        base="$(basename "$path")"
-        # Skip renaming files that are upstream package/command names
-        case "$base" in
-            omarchy-*.packages|omarchy.ttf) continue ;;
-        esac
-        dir="$(dirname "$path")"
-        new_name="${base//omarchy/omcachy}"
-        if [ "$base" != "$new_name" ]; then
-            mv "$path" "${dir}/${new_name}"
-            echo "  - Renamed: ${path} → ${dir}/${new_name}"
-        fi
-    done
-
-    # Step 3: Rename files/directories containing "OMARCHY" (deepest first)
-    find . -not -path './.git/*' -depth -name '*OMARCHY*' | while IFS= read -r path; do
-        dir="$(dirname "$path")"
-        old_name="$(basename "$path")"
-        new_name="${old_name//OMARCHY/OMCACHY}"
-        if [ "$old_name" != "$new_name" ]; then
-            mv "$path" "${dir}/${new_name}"
-            echo "  - Renamed: ${path} → ${dir}/${new_name}"
-        fi
-    done
-
-    cd "$WORK_DIR"
-
-    # Step 4: Rename the top-level repo directory itself
-    if [ -d "$REPO_DIR_PRERENAMED" ]; then
-        mv "$REPO_DIR_PRERENAMED" "$REPO_DIR"
-        echo "  - Renamed: ${REPO_DIR_PRERENAMED} → ${REPO_DIR}"
-    fi
 
     checkpoint_set "rename"
 else
@@ -202,7 +156,6 @@ if ! checkpoint_done "branding"; then
                 continue
             fi
 
-            # Find all instances of this file in the repo and replace them
             found=false
             while IFS= read -r -d '' target; do
                 cp "$src" "$target"
@@ -281,10 +234,10 @@ fi
 export OMCACHY_USER_NAME
 export OMCACHY_USER_EMAIL
 
-# ─── 10. Patch Omcachy install scripts for CachyOS ───────────────────────────
+# ─── 10. Patch install scripts for CachyOS ───────────────────────────────────
 if ! checkpoint_done "patch_scripts"; then
     echo ""
-    echo "Making adjustments to Omcachy install scripts to support CachyOS..."
+    echo "Making adjustments to install scripts to support CachyOS..."
     cd "$REPO_DIR"
 
     # Remove tldr to prevent conflict with tealdeer
@@ -351,8 +304,8 @@ cd ~/.local/share/omcachy
 # ─── 12. Run Omcachy installer ───────────────────────────────────────────────
 echo ""
 echo "The following adjustments have been completed."
-echo " 1. Cloned Omarchy repo and renamed display references to Omcachy."
-echo " 2. Preserved upstream package/command names (omarchy-*)."
+echo " 1. Renamed display/branding text from Omarchy to Omcachy."
+echo " 2. Preserved all upstream package names, commands, and paths (omarchy-*)."
 echo " 3. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
 echo " 4. Added Omarchy repo to pacman.conf (if not already present)."
 echo " 5. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
