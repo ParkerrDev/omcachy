@@ -69,6 +69,8 @@ fi
 if ! checkpoint_done "rename"; then
     echo "Renaming omarchy → omcachy across the repo (preserving URLs and pacman source lines)..."
     cd "${WORK_DIR}/omarchy"
+
+    # Step 1: Rename file contents (preserving URLs, Server lines, and [omarchy] section)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
@@ -80,6 +82,29 @@ if ! checkpoint_done "rename"; then
       -e '}' \
       -e '}' \
     {} +
+
+    # Step 2: Rename files containing "omarchy" in their name (deepest first)
+    find . -not -path './.git/*' -depth -name '*omarchy*' | while IFS= read -r path; do
+        dir="$(dirname "$path")"
+        old_name="$(basename "$path")"
+        new_name="${old_name//omarchy/omcachy}"
+        if [ "$old_name" != "$new_name" ]; then
+            mv "$path" "${dir}/${new_name}"
+            echo "  - Renamed: ${path} → ${dir}/${new_name}"
+        fi
+    done
+
+    # Step 3: Rename files containing "OMARCHY" in their name (deepest first)
+    find . -not -path './.git/*' -depth -name '*OMARCHY*' | while IFS= read -r path; do
+        dir="$(dirname "$path")"
+        old_name="$(basename "$path")"
+        new_name="${old_name//OMARCHY/OMCACHY}"
+        if [ "$old_name" != "$new_name" ]; then
+            mv "$path" "${dir}/${new_name}"
+            echo "  - Renamed: ${path} → ${dir}/${new_name}"
+        fi
+    done
+
     checkpoint_set "rename"
 else
     echo "[✓] Rename already completed, skipping."
@@ -251,13 +276,14 @@ cd ~/.local/share/omcachy
 echo ""
 echo "The following adjustments have been completed."
 echo " 1. Cloned Omarchy repo and renamed all references to Omcachy."
-echo " 2. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
-echo " 3. Added Omarchy repo to pacman.conf (if not already present)."
-echo " 4. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
-echo " 5. Disabled further Omcachy changes to pacman.conf, preserving CachyOS settings."
-echo " 6. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
-echo " 7. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
-echo " 8. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
+echo " 2. Renamed all files and directories containing 'omarchy' to 'omcachy'."
+echo " 3. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
+echo " 4. Added Omarchy repo to pacman.conf (if not already present)."
+echo " 5. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
+echo " 6. Disabled further Omcachy changes to pacman.conf, preserving CachyOS settings."
+echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
+echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
+echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
 echo ""
 echo "Press Enter to begin the installation of Omcachy..."
 read -r
