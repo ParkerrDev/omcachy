@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ASSETS_DIR="${SCRIPT_DIR}/assets"
 CHECKPOINT_DIR="${HOME}/.cache/omcachy-install"
 WORK_DIR="$(mktemp -d /tmp/omcachy-install.XXXXXX)"
 mkdir -p "$CHECKPOINT_DIR"
@@ -78,29 +79,33 @@ fi
 
 # ─── 4. Replace branding assets ──────────────────────────────────────────────
 if ! checkpoint_done "branding"; then
-    echo "Replacing branding assets with custom versions..."
+    echo "Replacing branding assets with custom versions from ${ASSETS_DIR}..."
     cd "${WORK_DIR}/omarchy"
 
-    ASSETS=("logo.txt" "logo.svg" "icon.txt" "icon.svg" "icon.png")
-    for asset in "${ASSETS[@]}"; do
-        src="${SCRIPT_DIR}/${asset}"
-        if [ ! -f "$src" ]; then
-            echo "  ⚠ ${asset} not found in script directory (${SCRIPT_DIR}), skipping."
-            continue
-        fi
+    if [ ! -d "$ASSETS_DIR" ]; then
+        echo "  ⚠ Assets directory not found (${ASSETS_DIR}), skipping branding."
+    else
+        ASSETS=("logo.txt" "logo.svg" "icon.txt" "icon.svg" "icon.png")
+        for asset in "${ASSETS[@]}"; do
+            src="${ASSETS_DIR}/${asset}"
+            if [ ! -f "$src" ]; then
+                echo "  ⚠ ${asset} not found in assets directory (${ASSETS_DIR}), skipping."
+                continue
+            fi
 
-        # Find all instances of this file in the repo and replace them
-        found=false
-        while IFS= read -r -d '' target; do
-            cp "$src" "$target"
-            echo "  - Replaced ${target}"
-            found=true
-        done < <(find . -not -path './.git/*' -name "$asset" -print0)
+            # Find all instances of this file in the repo and replace them
+            found=false
+            while IFS= read -r -d '' target; do
+                cp "$src" "$target"
+                echo "  - Replaced ${target}"
+                found=true
+            done < <(find . -not -path './.git/*' -name "$asset" -print0)
 
-        if [ "$found" = false ]; then
-            echo "  ⚠ No instances of ${asset} found in the repo."
-        fi
-    done
+            if [ "$found" = false ]; then
+                echo "  ⚠ No instances of ${asset} found in the repo."
+            fi
+        done
+    fi
 
     checkpoint_set "branding"
 else
@@ -276,7 +281,7 @@ read -r
 chmod +x install.sh
 ./install.sh
 
-# ─���─ Done — clean up checkpoints ─────────────────────────────────────────────
+# ─── Done — clean up checkpoints ─────────────────────────────────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
 rm -rf "$CHECKPOINT_DIR"
