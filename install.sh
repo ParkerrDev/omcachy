@@ -103,28 +103,60 @@ if ! checkpoint_done "rename"; then
         exit 1
     fi
 
-    echo "Renaming omarchy → omcachy across the repo (preserving URLs and pacman source lines)..."
+    echo "Renaming omarchy → omcachy across the repo (preserving URLs, pacman, packages, and commands)..."
     cd "$RENAME_TARGET"
 
-    # Step 1: Rename file contents (preserving URLs, Server lines, and [omarchy] section)
+    # Step 1: Rename file contents
+    # Preserves:
+    #   - URLs containing omarchy (https://...)
+    #   - Pacman Server lines (Server = ...)
+    #   - Pacman repo section ([omarchy])
+    #   - Upstream package/command names (omarchy-xxx as a command or package name)
+    #   - Upstream paths (~/.local/share/omarchy/)
+    #   - Upstream font file (omarchy.ttf)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
       -e '/\[omarchy\]/!{' \
+      -e '/omarchy-pkg-/!{' \
+      -e '/omarchy-hw-/!{' \
+      -e '/omarchy-cmd-/!{' \
+      -e '/omarchy-nvim/!{' \
+      -e '/omarchy-tui-/!{' \
+      -e '/omarchy-webapp-/!{' \
+      -e '/omarchy-update/!{' \
+      -e '/omarchy\.ttf/!{' \
+      -e '/\.local\/share\/omarchy/!{' \
+      -e '/pacman.*omarchy/!{' \
       -e 's/OMARCHY/OMCACHY/g' \
       -e 's/Omarchy/Omcachy/g' \
       -e 's/omarchy/omcachy/g' \
       -e '}' \
       -e '}' \
       -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
+      -e '}' \
     {} +
 
     # Step 2: Rename files/directories containing "omarchy" (deepest first)
+    # Only rename directory structure, NOT files that are actual upstream package scripts
     find . -not -path './.git/*' -depth -name '*omarchy*' | while IFS= read -r path; do
+        base="$(basename "$path")"
+        # Skip renaming files that are upstream package/command names
+        case "$base" in
+            omarchy-*.packages|omarchy.ttf) continue ;;
+        esac
         dir="$(dirname "$path")"
-        old_name="$(basename "$path")"
-        new_name="${old_name//omarchy/omcachy}"
-        if [ "$old_name" != "$new_name" ]; then
+        new_name="${base//omarchy/omcachy}"
+        if [ "$base" != "$new_name" ]; then
             mv "$path" "${dir}/${new_name}"
             echo "  - Renamed: ${path} → ${dir}/${new_name}"
         fi
@@ -256,46 +288,46 @@ if ! checkpoint_done "patch_scripts"; then
     cd "$REPO_DIR"
 
     # Remove tldr to prevent conflict with tealdeer
-    if grep -q 'tldr' install/omcachy-base.packages 2>/dev/null; then
-        sed -i '/tldr/d' install/omcachy-base.packages
+    if grep -q 'tldr' install/omarchy-base.packages 2>/dev/null; then
+        sed -i '/tldr/d' install/omarchy-base.packages
         echo "  - Removed tldr from packages."
     fi
 
     # Update restart-needed for cachyos kernel naming
-    if ! grep -q 'linux-cachyos' bin/omcachy-update-restart 2>/dev/null; then
-        sed -i "s/ | sed 's\/-arch\/\\\.arch\/'//" bin/omcachy-update-restart
-        sed -i "s/'{print \$2}'/'{print \$2 \"-\" \$1}' | sed 's\/-linux\/\/'/" bin/omcachy-update-restart
-        sed -i '/linux-cachyos/ ! s/pacman -Q linux/pacman -Q linux-cachyos/' bin/omcachy-update-restart
-        echo "  - Patched omcachy-update-restart for CachyOS kernel."
+    if ! grep -q 'linux-cachyos' bin/omarchy-update-restart 2>/dev/null; then
+        sed -i "s/ | sed 's\/-arch\/\\\.arch\/'//" bin/omarchy-update-restart
+        sed -i "s/'{print \$2}'/'{print \$2 \"-\" \$1}' | sed 's\/-linux\/\/'/" bin/omarchy-update-restart
+        sed -i '/linux-cachyos/ ! s/pacman -Q linux/pacman -Q linux-cachyos/' bin/omarchy-update-restart
+        echo "  - Patched omarchy-update-restart for CachyOS kernel."
     fi
 
     # Remove pacman.sh from preflight
-    if grep -q 'run_logged \$OMCACHY_INSTALL\/preflight\/pacman\.sh' install/preflight/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMCACHY_INSTALL\/preflight\/pacman\.sh/d' install/preflight/all.sh
+    if grep -q 'run_logged \$OMARCHY_INSTALL\/preflight\/pacman\.sh' install/preflight/all.sh 2>/dev/null; then
+        sed -i '/run_logged \$OMARCHY_INSTALL\/preflight\/pacman\.sh/d' install/preflight/all.sh
         echo "  - Removed pacman.sh from preflight/all.sh."
     fi
 
     # Remove limine-snapper.sh from login
-    if grep -q 'run_logged \$OMCACHY_INSTALL\/login\/limine-snapper\.sh' install/login/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMCACHY_INSTALL\/login\/limine-snapper\.sh/d' install/login/all.sh
+    if grep -q 'run_logged \$OMARCHY_INSTALL\/login\/limine-snapper\.sh' install/login/all.sh 2>/dev/null; then
+        sed -i '/run_logged \$OMARCHY_INSTALL\/login\/limine-snapper\.sh/d' install/login/all.sh
         echo "  - Removed limine-snapper.sh from login/all.sh."
     fi
 
     # Remove alt-bootloaders.sh from login
-    if grep -q 'run_logged \$OMCACHY_INSTALL\/login\/alt-bootloaders\.sh' install/login/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMCACHY_INSTALL\/login\/alt-bootloaders\.sh/d' install/login/all.sh
+    if grep -q 'run_logged \$OMARCHY_INSTALL\/login\/alt-bootloaders\.sh' install/login/all.sh 2>/dev/null; then
+        sed -i '/run_logged \$OMARCHY_INSTALL\/login\/alt-bootloaders\.sh/d' install/login/all.sh
         echo "  - Removed alt-bootloaders.sh from login/all.sh."
     fi
 
     # Remove pacman.sh from post-install
-    if grep -q 'run_logged \$OMCACHY_INSTALL\/post-install\/pacman\.sh' install/post-install/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMCACHY_INSTALL\/post-install\/pacman\.sh/d' install/post-install/all.sh
+    if grep -q 'run_logged \$OMARCHY_INSTALL\/post-install\/pacman\.sh' install/post-install/all.sh 2>/dev/null; then
+        sed -i '/run_logged \$OMARCHY_INSTALL\/post-install\/pacman\.sh/d' install/post-install/all.sh
         echo "  - Removed pacman.sh from post-install/all.sh."
     fi
 
     # Update mise activation for bash and fish
-    if grep -q 'omcachy-cmd-present mise && eval "\$(mise activate bash)"' config/uwsm/env 2>/dev/null; then
-        sed -i 's/omcachy-cmd-present mise && eval "\$(mise activate bash)"/if [ "\$SHELL" = "\/bin\/bash" ] \&\& command -v mise \&> \/dev\/null; then\n  eval "\$(mise activate bash)"\nelif [ "\$SHELL" = "\/bin\/fish" ] \&\& command -v mise \&> \/dev\/null; then\n  mise activate fish | source\nfi/' config/uwsm/env
+    if grep -q 'omarchy-cmd-present mise && eval "\$(mise activate bash)"' config/uwsm/env 2>/dev/null; then
+        sed -i 's/omarchy-cmd-present mise && eval "\$(mise activate bash)"/if [ "\$SHELL" = "\/bin\/bash" ] \&\& command -v mise \&> \/dev\/null; then\n  eval "\$(mise activate bash)"\nelif [ "\$SHELL" = "\/bin\/fish" ] \&\& command -v mise \&> \/dev\/null; then\n  mise activate fish | source\nfi/' config/uwsm/env
         echo "  - Patched mise activation for bash/fish."
     fi
 
@@ -319,12 +351,12 @@ cd ~/.local/share/omcachy
 # ─── 12. Run Omcachy installer ───────────────────────────────────────────────
 echo ""
 echo "The following adjustments have been completed."
-echo " 1. Cloned Omarchy repo and renamed all references to Omcachy."
-echo " 2. Renamed all files and directories containing 'omarchy' to 'omcachy'."
+echo " 1. Cloned Omarchy repo and renamed display references to Omcachy."
+echo " 2. Preserved upstream package/command names (omarchy-*)."
 echo " 3. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
 echo " 4. Added Omarchy repo to pacman.conf (if not already present)."
 echo " 5. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
-echo " 6. Disabled further Omcachy changes to pacman.conf, preserving CachyOS settings."
+echo " 6. Disabled further Omarchy changes to pacman.conf, preserving CachyOS settings."
 echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
 echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
 echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
