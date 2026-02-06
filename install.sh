@@ -94,9 +94,23 @@ fi
 # ─── 4. Rename display text omarchy → omcachy inside files ───────────────────
 if ! checkpoint_done "rename"; then
     echo "Renaming display text omarchy → omcachy inside files..."
-    echo "  (Preserving upstream package names, commands, paths, URLs, and pacman config)"
+    echo "  (Preserving upstream package names, commands, paths, URLs, themes, and pacman config)"
     cd "$REPO_DIR"
 
+    # Only rename lines that are pure display/branding text.
+    # Skip any line that contains:
+    #   - URLs (https://...omarchy)
+    #   - Pacman server lines (Server = ...)
+    #   - Pacman repo section ([omarchy])
+    #   - Upstream command/package names (omarchy- prefix)
+    #   - Upstream file references (omarchy.something)
+    #   - Upstream install paths (~/.local/share/omarchy)
+    #   - OMARCHY_ variables
+    #   - run_logged lines (upstream script paths)
+    #   - pacman commands referencing omarchy
+    #   - cp/mkdir commands referencing omarchy
+    #   - Plymouth theme paths (/usr/share/plymouth, .plymouth)
+    #   - Themes directory references (themes/omarchy)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
@@ -109,9 +123,13 @@ if ! checkpoint_done "rename"; then
       -e '/pacman.*omarchy/!{' \
       -e '/cp.*omarchy/!{' \
       -e '/mkdir.*omarchy/!{' \
+      -e '/plymouth.*omarchy/!{' \
+      -e '/themes\/omarchy/!{' \
       -e 's/OMARCHY/OMCACHY/g' \
       -e 's/Omarchy/Omcachy/g' \
       -e 's/omarchy/omcachy/g' \
+      -e '}' \
+      -e '}' \
       -e '}' \
       -e '}' \
       -e '}' \
@@ -314,7 +332,7 @@ cd "$INSTALL_DIR"
 echo ""
 echo "The following adjustments have been completed."
 echo " 1. Renamed display/branding text from Omarchy to Omcachy."
-echo " 2. Preserved all upstream package names, commands, and paths (omarchy-*)."
+echo " 2. Preserved all upstream package names, commands, paths, and themes (omarchy-*)."
 echo " 3. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
 echo " 4. Added Omarchy repo to pacman.conf (if not already present)."
 echo " 5. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
