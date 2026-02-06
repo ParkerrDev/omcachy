@@ -2,22 +2,44 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
 ASSETS_DIR="${SCRIPT_DIR}/assets"
 CHECKPOINT_DIR="${HOME}/.cache/omcachy-install"
-WORK_DIR="$(mktemp -d /tmp/omcachy-install.XXXXXX)"
 mkdir -p "$CHECKPOINT_DIR"
 
-# Store work dir path so checkpoints can find it across re-runs
-if checkpoint_file="${CHECKPOINT_DIR}/work_dir" && [ -f "$checkpoint_file" ]; then
-    PREV_WORK_DIR="$(cat "$checkpoint_file")"
-    if [ -d "$PREV_WORK_DIR" ]; then
-        rmdir "$WORK_DIR" 2>/dev/null || true
-        WORK_DIR="$PREV_WORK_DIR"
+# ─── Version check: invalidate checkpoints if script has changed ─────────────
+SCRIPT_HASH="$(sha256sum "$SCRIPT_PATH" | awk '{print $1}')"
+if [ -f "${CHECKPOINT_DIR}/script_hash" ]; then
+    SAVED_HASH="$(cat "${CHECKPOINT_DIR}/script_hash")"
+    if [ "$SCRIPT_HASH" != "$SAVED_HASH" ]; then
+        echo "Script has been modified since last run. Clearing checkpoints and starting fresh..."
+        rm -rf "$CHECKPOINT_DIR"
+        mkdir -p "$CHECKPOINT_DIR"
     fi
 fi
-echo "$WORK_DIR" > "${CHECKPOINT_DIR}/work_dir"
+echo "$SCRIPT_HASH" > "${CHECKPOINT_DIR}/script_hash"
 
-echo "Using temporary working directory: ${WORK_DIR}"
+# ─── Restore or create the temporary working directory ────────────────────────
+if [ -f "${CHECKPOINT_DIR}/work_dir" ]; then
+    SAVED_WORK_DIR="$(cat "${CHECKPOINT_DIR}/work_dir")"
+    if [ -d "$SAVED_WORK_DIR" ]; then
+        WORK_DIR="$SAVED_WORK_DIR"
+        echo "Resuming with temporary working directory: ${WORK_DIR}"
+    else
+        echo "Previous working directory (${SAVED_WORK_DIR}) no longer exists."
+        echo "Clearing stale checkpoints and starting fresh..."
+        rm -rf "$CHECKPOINT_DIR"
+        mkdir -p "$CHECKPOINT_DIR"
+        echo "$SCRIPT_HASH" > "${CHECKPOINT_DIR}/script_hash"
+        WORK_DIR="$(mktemp -d /tmp/omcachy-install.XXXXXX)"
+        echo "$WORK_DIR" > "${CHECKPOINT_DIR}/work_dir"
+        echo "Using new temporary working directory: ${WORK_DIR}"
+    fi
+else
+    WORK_DIR="$(mktemp -d /tmp/omcachy-install.XXXXXX)"
+    echo "$WORK_DIR" > "${CHECKPOINT_DIR}/work_dir"
+    echo "Using temporary working directory: ${WORK_DIR}"
+fi
 
 # The repo directory name changes after the rename step
 REPO_DIR="${WORK_DIR}/omcachy"
@@ -316,4 +338,6 @@ chmod +x install.sh
 # ─── Done — clean up checkpoints ─────────────────────────────────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
-rm -rf "$CHECKPOINT_DIR
+rm -rf "$CHECKPOINT_DIR"
+# Temp directory is cleaned up automatically by the EXIT trap
+echo "Done."
