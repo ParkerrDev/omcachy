@@ -41,7 +41,6 @@ else
     echo "Using temporary working directory: ${WORK_DIR}"
 fi
 
-# The repo directory name stays as "omarchy" — we only rename display text inside files
 REPO_DIR="${WORK_DIR}/omarchy"
 
 # Clean up temp directory on exit (success or failure)
@@ -96,17 +95,6 @@ if ! checkpoint_done "rename"; then
     echo "  (Preserving upstream package names, commands, paths, URLs, and pacman config)"
     cd "$REPO_DIR"
 
-    # Only rename lines that are pure display/branding text.
-    # Skip any line that contains:
-    #   - URLs (https://...omarchy)
-    #   - Pacman server lines (Server = ...omarchy)
-    #   - Pacman repo section ([omarchy])
-    #   - Upstream command/package names (omarchy- prefix)
-    #   - Upstream install paths (~/.local/share/omarchy)
-    #   - Upstream font file (omarchy.ttf)
-    #   - Pacman commands referencing omarchy
-    #   - OMARCHY_INSTALL variable (used to reference install paths)
-    #   - run_logged lines (reference upstream script paths)
     find . -not -path './.git/*' -type f -exec sed -i \
       -e '/https:\/\/.*omarchy/!{' \
       -e '/Server\s*=.*omarchy/!{' \
@@ -174,7 +162,7 @@ else
     echo "[✓] Branding assets already replaced, skipping."
 fi
 
-# ─── 6. Import Omarchy signing key ───────────────────────────────────────────
+# ─── 6. Import Omarchy signing key ────────────────────────���──────────────────
 if ! checkpoint_done "signing_key"; then
     if pacman-key --list-keys F0134EE680CAC571 &> /dev/null; then
         echo "Omarchy signing key already imported."
@@ -255,26 +243,26 @@ if ! checkpoint_done "patch_scripts"; then
     fi
 
     # Remove pacman.sh from preflight
-    if grep -q 'run_logged \$OMARCHY_INSTALL\/preflight\/pacman\.sh' install/preflight/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMARCHY_INSTALL\/preflight\/pacman\.sh/d' install/preflight/all.sh
+    if grep -q 'run_logged.*preflight\/pacman\.sh' install/preflight/all.sh 2>/dev/null; then
+        sed -i '/run_logged.*preflight\/pacman\.sh/d' install/preflight/all.sh
         echo "  - Removed pacman.sh from preflight/all.sh."
     fi
 
     # Remove limine-snapper.sh from login
-    if grep -q 'run_logged \$OMARCHY_INSTALL\/login\/limine-snapper\.sh' install/login/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMARCHY_INSTALL\/login\/limine-snapper\.sh/d' install/login/all.sh
+    if grep -q 'run_logged.*login\/limine-snapper\.sh' install/login/all.sh 2>/dev/null; then
+        sed -i '/run_logged.*login\/limine-snapper\.sh/d' install/login/all.sh
         echo "  - Removed limine-snapper.sh from login/all.sh."
     fi
 
     # Remove alt-bootloaders.sh from login
-    if grep -q 'run_logged \$OMARCHY_INSTALL\/login\/alt-bootloaders\.sh' install/login/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMARCHY_INSTALL\/login\/alt-bootloaders\.sh/d' install/login/all.sh
+    if grep -q 'run_logged.*login\/alt-bootloaders\.sh' install/login/all.sh 2>/dev/null; then
+        sed -i '/run_logged.*login\/alt-bootloaders\.sh/d' install/login/all.sh
         echo "  - Removed alt-bootloaders.sh from login/all.sh."
     fi
 
     # Remove pacman.sh from post-install
-    if grep -q 'run_logged \$OMARCHY_INSTALL\/post-install\/pacman\.sh' install/post-install/all.sh 2>/dev/null; then
-        sed -i '/run_logged \$OMARCHY_INSTALL\/post-install\/pacman\.sh/d' install/post-install/all.sh
+    if grep -q 'run_logged.*post-install\/pacman\.sh' install/post-install/all.sh 2>/dev/null; then
+        sed -i '/run_logged.*post-install\/pacman\.sh/d' install/post-install/all.sh
         echo "  - Removed pacman.sh from post-install/all.sh."
     fi
 
@@ -292,8 +280,18 @@ fi
 # ─── 11. Copy to ~/.local/share/omcachy ──────────────────────────────────────
 if ! checkpoint_done "copy_local"; then
     echo "Copying Omcachy to ~/.local/share/omcachy..."
+
+    # Remove any stale previous copy (may have root-owned .git files from a failed run)
+    if [ -d ~/.local/share/omcachy ]; then
+        echo "  Removing previous partial copy..."
+        sudo rm -rf ~/.local/share/omcachy
+    fi
+
     mkdir -p ~/.local/share/omcachy
-    cp -r "${REPO_DIR}/." ~/.local/share/omcachy
+
+    # Copy everything except .git — it's not needed for installation
+    rsync -a --exclude='.git' "${REPO_DIR}/" ~/.local/share/omcachy/
+
     checkpoint_set "copy_local"
 else
     echo "[✓] Copy to ~/.local/share/omcachy already completed, skipping."
