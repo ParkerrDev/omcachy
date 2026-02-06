@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="67.733" height="67.733" viewBox="0 0 17.921 17.921">
+  <!-- Main shape -->
+  <path
+    fill="#ffffff"
+    d="M4.329 1.924h8.345l-2.112 3.653H6.036L4.15 8.837l1.912 3.307h8.829l-2.167 3.745H4.15L.013 8.737l3.96-6.848z"
+  />
+
+  <!-- Outer dots -->
+  <circle cx="16.52" cy="10.64" r="1.424" fill="#ffffff" />
+  <circle cx="13.45" cy="7.34" r="1.081" fill="#ffffff" />
+  <circle cx="14.92" cy="3.48" r="0.557" fill="#ffffff" />
+</svg>
