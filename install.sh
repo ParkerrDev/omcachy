@@ -19,7 +19,7 @@ if [ -f "${CHECKPOINT_DIR}/script_hash" ]; then
 fi
 echo "$SCRIPT_HASH" > "${CHECKPOINT_DIR}/script_hash"
 
-# ─── Restore or create the temporary working directory ────────────────────────
+# ─── Restore or create the temporary working directory ─────────��──────────────
 if [ -f "${CHECKPOINT_DIR}/work_dir" ]; then
     SAVED_WORK_DIR="$(cat "${CHECKPOINT_DIR}/work_dir")"
     if [ -d "$SAVED_WORK_DIR" ]; then
@@ -75,7 +75,36 @@ if ! command -v paru &> /dev/null; then
 fi
 echo "[✓] paru is installed."
 
-# ─── 3. Clone Omarchy repo ───────────────────────────────────────────────────
+# ─── 3. Fix python-terminaltexteffects (tte) ─────────────────────────────────
+if ! checkpoint_done "tte_fix"; then
+    echo "Fixing python-terminaltexteffects for CachyOS..."
+
+    # The CachyOS pacman version is broken (missing module). Replace with AUR version.
+    if pacman -Qi python-terminaltexteffects &> /dev/null; then
+        echo "  Removing broken pacman version of python-terminaltexteffects..."
+        sudo pacman -Rdd --noconfirm python-terminaltexteffects 2>/dev/null || true
+    fi
+
+    if ! paru -Qi python-terminaltexteffects &> /dev/null || ! python -c "import terminaltexteffects" 2>/dev/null; then
+        echo "  Installing python-terminaltexteffects from AUR..."
+        paru -S --noconfirm aur/python-terminaltexteffects
+    else
+        echo "  AUR version already installed and working."
+    fi
+
+    # Verify tte works
+    if command -v tte &> /dev/null && echo "test" | tte --version &> /dev/null; then
+        echo "  [✓] tte is working."
+    else
+        echo "  ⚠ tte may still have issues, but continuing installation."
+    fi
+
+    checkpoint_set "tte_fix"
+else
+    echo "[✓] tte fix already applied, skipping."
+fi
+
+# ─── 4. Clone Omarchy repo ───────────────────────────────────────────────────
 if ! checkpoint_done "clone"; then
     if [ -d "$REPO_DIR" ]; then
         echo "Omarchy directory already exists, skipping clone."
@@ -91,7 +120,7 @@ else
     echo "[✓] Clone already completed, skipping."
 fi
 
-# ─── 4. Rename display text omarchy → omcachy inside files ───────────────────
+# ─── 5. Rename display text omarchy → omcachy inside files ───────────────────
 if ! checkpoint_done "rename"; then
     echo "Renaming display text omarchy → omcachy inside files..."
     echo "  (Preserving upstream package names, commands, paths, URLs, themes, and pacman config)"
@@ -134,7 +163,7 @@ else
     echo "[✓] Rename already completed, skipping."
 fi
 
-# ─── 5. Replace branding assets ──────────────────────────────────────────────
+# ─── 6. Replace branding assets ──────────────────────────────────────────────
 if ! checkpoint_done "branding"; then
     echo "Replacing branding assets with custom versions from ${ASSETS_DIR}..."
     cd "$REPO_DIR"
@@ -168,7 +197,7 @@ else
     echo "[✓] Branding assets already replaced, skipping."
 fi
 
-# ─── 6. Import Omarchy signing key ───────────────────────────────────────────
+# ─── 7. Import Omarchy signing key ───────────────────────────────────────────
 if ! checkpoint_done "signing_key"; then
     if pacman-key --list-keys F0134EE680CAC571 &> /dev/null; then
         echo "Omarchy signing key already imported."
@@ -182,7 +211,7 @@ else
     echo "[✓] Signing key step already completed, skipping."
 fi
 
-# ─── 7. Add omarchy repo to pacman.conf ──────────────────────────────────────
+# ─── 8. Add omarchy repo to pacman.conf ──────────────────────────────────────
 if ! checkpoint_done "pacman_repo"; then
     if grep -q '^\[omarchy\]' /etc/pacman.conf; then
         echo "Omarchy repo already present in pacman.conf."
@@ -196,7 +225,7 @@ else
     echo "[✓] Pacman repo step already completed, skipping."
 fi
 
-# ─── 8. Remove CachyOS SDDM config ──────────────────────────────────────────
+# ─── 9. Remove CachyOS SDDM config ──────────────────────────────────────────
 if ! checkpoint_done "sddm"; then
     if [ -f /etc/sddm.conf ]; then
         echo "Removing /etc/sddm.conf..."
@@ -209,7 +238,7 @@ else
     echo "[✓] SDDM step already completed, skipping."
 fi
 
-# ─── 9. Prompt for user info (only if not already captured) ──────────────────
+# ─── 10. Prompt for user info (only if not already captured) ─────────────────
 if ! checkpoint_done "user_info"; then
     echo ""
     echo "Please enter your username:"
@@ -228,7 +257,7 @@ fi
 export OMCACHY_USER_NAME
 export OMCACHY_USER_EMAIL
 
-# ─── 10. Patch install scripts for CachyOS ───────────────────────────────────
+# ─── 11. Patch install scripts for CachyOS ───────────────────────────────────
 if ! checkpoint_done "patch_scripts"; then
     echo ""
     echo "Making adjustments to install scripts to support CachyOS..."
@@ -278,18 +307,12 @@ if ! checkpoint_done "patch_scripts"; then
         echo "  - Patched mise activation for bash/fish."
     fi
 
-    # Remove tte logo animation entirely — it halts the install in non-standard terminals
-    # even with exit code 0, due to omarchy's ERR trap catching signals from tte's rendering
-    find . -not -path './.git/*' -type f -name '*.sh' -exec \
-        sed -i '/tte.*logo\.txt/d' {} +
-    echo "  - Removed tte logo animation (causes install halt)."
-
     checkpoint_set "patch_scripts"
 else
     echo "[✓] Script patching already completed, skipping."
 fi
 
-# ─── 11. Copy to ~/.local/share/omcachy and symlink ──────────────────────────
+# ─── 12. Copy to ~/.local/share/omcachy and symlink ──────────────────────────
 if ! checkpoint_done "copy_local"; then
     echo "Copying Omcachy to ${INSTALL_DIR}..."
 
@@ -319,20 +342,20 @@ fi
 
 cd "$INSTALL_DIR"
 
-# ─── 12. Run Omcachy installer ───────────────────────────────────────────────
+# ─── 13. Run Omcachy installer ───────────────────────────────────────────────
 echo ""
 echo "The following adjustments have been completed."
-echo " 1. Renamed display/branding text from Omarchy to Omcachy."
-echo " 2. Preserved all upstream package names, commands, paths, and themes (omarchy-*)."
-echo " 3. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
-echo " 4. Added Omarchy repo to pacman.conf (if not already present)."
-echo " 5. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
-echo " 6. Disabled further Omarchy changes to pacman.conf, preserving CachyOS settings."
-echo " 7. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
-echo " 8. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
-echo " 9. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
-echo "10. Created symlink ~/.local/share/omarchy → ~/.local/share/omcachy."
-echo "11. Removed tte logo animation (causes install halt)."
+echo "  1. Fixed python-terminaltexteffects (replaced broken pacman version with AUR)."
+echo "  2. Renamed display/branding text from Omarchy to Omcachy."
+echo "  3. Preserved all upstream package names, commands, paths, and themes (omarchy-*)."
+echo "  4. Replaced branding assets (logo.txt, logo.svg, icon.txt, icon.svg, icon.png)."
+echo "  5. Added Omarchy repo to pacman.conf (if not already present)."
+echo "  6. Removed tldr from packages to avoid conflict with tealdeer on CachyOS."
+echo "  7. Disabled further Omarchy changes to pacman.conf, preserving CachyOS settings."
+echo "  8. Removed limine-snapper.sh to avoid conflict with CachyOS boot loader."
+echo "  9. Removed alt-bootloaders.sh to avoid conflict with CachyOS boot loader."
+echo " 10. Removed /etc/sddm.conf to avoid conflict with Omcachy UWSM session autologin."
+echo " 11. Created symlink ~/.local/share/omarchy → ~/.local/share/omcachy."
 echo ""
 echo "Press Enter to begin the installation of Omcachy..."
 read -r
@@ -340,7 +363,7 @@ read -r
 chmod +x install.sh
 ./install.sh
 
-# ─── Done — clean up checkpoints ─────────────────────────────────────────────
+# ─── Done — clean up checkpoints ───────────────────��─────────────────────────
 echo ""
 echo "Installation complete! Cleaning up checkpoints..."
 rm -rf "$CHECKPOINT_DIR"
