@@ -416,29 +416,40 @@
   <text x="474" y="140" fill="#0cf">▀</text>
 
   <!-- Letter H -->
+  <!-- Top caps -->
   <rect x="520" y="24" width="8" height="8" fill="url(#glowGrad)" rx="0"/>
   <rect x="528" y="16" width="8" height="16" fill="url(#topGrad)" rx="0"/>
   <rect x="568" y="16" width="8" height="16" fill="url(#topGrad)" rx="0"/>
   <rect x="576" y="24" width="8" height="8" fill="url(#glowGrad)" rx="0"/>
+  <!-- Row y=32 -->
   <rect x="512" y="32" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="520" y="32" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="528" y="32" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="568" y="32" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="576" y="32" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="584" y="32" width="8" height="16" fill="#0cf" rx="0"/>
+  <!-- Row y=48 -->
   <rect x="512" y="48" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="520" y="48" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="528" y="48" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="568" y="48" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="576" y="48" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="584" y="48" width="8" height="16" fill="#0a8" rx="0"/>
-  <text x="594" y="92" fill="#0a8">▀</text>
+  <!-- Row y=64 - crossbar area with left/right pillars + crossbar connections -->
+  <rect x="504" y="72" width="8" height="8" fill="url(#glowGrad)" rx="0"/>
   <rect x="512" y="64" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="520" y="64" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="528" y="64" width="8" height="16" fill="#0cf" rx="0"/>
+  <rect x="536" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
+  <rect x="544" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
+  <rect x="552" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
+  <rect x="560" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
   <rect x="568" y="64" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="576" y="64" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="584" y="64" width="8" height="16" fill="#0cf" rx="0"/>
+  <rect x="592" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
+  <rect x="600" y="72" width="8" height="8" fill="url(#diagGrad)" rx="0"/>
+  <!-- Row y=80 -->
   <rect x="512" y="80" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="520" y="80" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="528" y="80" width="8" height="16" fill="#0a8" rx="0"/>
@@ -446,18 +457,21 @@
   <rect x="576" y="80" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="584" y="80" width="8" height="16" fill="#0a8" rx="0"/>
   <text x="594" y="92" fill="#0a8">▀</text>
+  <!-- Row y=96 -->
   <rect x="512" y="96" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="520" y="96" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="528" y="96" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="568" y="96" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="576" y="96" width="8" height="16" fill="#0cf" rx="0"/>
   <rect x="584" y="96" width="8" height="16" fill="#0cf" rx="0"/>
+  <!-- Row y=112 -->
   <rect x="512" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="520" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="528" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="568" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="576" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="584" y="112" width="8" height="16" fill="#0a8" rx="0"/>
+  <!-- Bottom caps -->
   <rect x="512" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
   <rect x="520" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
   <rect x="528" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
@@ -505,10 +519,11 @@
   <rect x="664" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="672" y="112" width="8" height="16" fill="#0a8" rx="0"/>
   <rect x="680" y="112" width="8" height="16" fill="#0a8" rx="0"/>
-  <rect x="616" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
-  <rect x="624" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
+  <text x="626" y="140" fill="#0cf">▀</text>
   <rect x="632" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
   <rect x="640" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
   <rect x="648" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
+  <rect x="656" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
+  <rect x="664" y="128" width="8" height="16" fill="url(#bottomGrad)" rx="0"/>
   <text x="674" y="140" fill="#0cf">▀</text>
 </svg>
