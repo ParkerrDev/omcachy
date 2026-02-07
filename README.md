@@ -1,4 +1,6 @@
-# Omcachy — Omarchy for CachyOS
+# Omcachy - Omarchy for CachyOS
+
+![Logo](assets/color-logo.svg)
 
 Brings the best of both worlds in terms of desktop envioronment and optimized speed.
 
