@@ -10,10 +10,10 @@ Brings the best of both worlds in terms of desktop envioronment and optimized sp
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/omcachy.git /tmp/omcachy
+git clone https://github.com/ParkerrDev/omcachy.git /tmp/omcachy
 cd /tmp/omcachy
-chmod +x install-omarchy-cachyos.sh
-./install-omarchy-cachyos.sh
+chmod +x install.sh
+./install.sh
 ```
 
 ### 4. Follow the prompts
